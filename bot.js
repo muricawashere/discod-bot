@@ -1,103 +1,48 @@
 const botSettings = require("./botsettings.json")
 const Discord = require("discord.js")
 const prefix = botSettings.prefix
-var playing = ""
+const votemutetime = botSettings.votemutetime
 const bot = new Discord.Client({disableEveryone: true})
+var votes = {}
+const fs = require("fs")
+const name = ['jaydens', 'addys', 'spencers', 'gavins', 'rivers', 'maxs']
+bot.commands = new Discord.Collection()
 
+fs.readdir("./cmds/", (err, files) => {
+    if(err) console.error(err)
+
+    jsfiles = files.filter(f => f.split(".").pop() === "js")
+    if(jsfiles.length <= 0) {
+        console.log("No commands to load!");
+        return;
+    }
+
+    console.log(`Loading ${jsfiles.length} commands!`)
+
+    jsfiles.forEach((f, i) => {
+        props = require(`./cmds/${f}`)
+        console.log(`${i + 1}: ${f} loaded!`)
+        bot.commands.set(props.help.name, props)
+    })
+})
 bot.on("ready", async() => {
     console.log(`Bot is ready! ${bot.user.username}`)
-    bot.user.setGame(playing)
-    try {
-        let link = await bot.generateInvite(["ADMINISTRATOR"])
-        console.log(link)
-    } catch(e) {
-        console.log(e.stack)
-    }
+    var rperson = Math.floor(Math.random() * (5 - 0) + 0)
+    console.log(rperson)
+    bot.user.setGame("with " + name[rperson] + " ")
 })
-
-bot.on("message", async message => {
-    if(message.author.bot) return;
-    if(message.channel.type === "dm") return;
-
-    var messageArray = message.content.split(" ")
-    var command = messageArray.shift()
-    var args = messageArray //.slice(1)
-
-    if(!command.startsWith(prefix)) return;
-    if(command === `${prefix}setgame`) {
-        var playing = messageArray.join(" ")
-        bot.user.setGame(playing)
+bot.on("messageReactionAdd", (reaction, user) => {
+    if(!user.bot && reaction._emoji.name === '🍆') {
+        if(reaction.count > 3) {
+            console.log(reaction.content)
+            bot.channels.get('372191976658829312').sendMessage({embed: {
+                color: 3447003,
+                author: {
+                    name: reaction.message.author.username,
+                    icon_url: reaction.message.author.avatarURL,
+                },
+                description: reaction.message.content,
+            }})
     }
-    if(command === `${prefix}userinfo`) {
-        var userinfotarget = message.mentions.users.first()
-        if(!userinfotarget) {
-            var embed = new Discord.RichEmbed()
-            .setAuthor(`${message.author.username}#${message.author.discriminator}`)
-            .setDescription("This is the user's info!")
-            .setColor("#ff0000")
-            .setThumbnail(message.author.avatarURL)
-            .addField("Created At", message.author.createdAt)
-            .addField("ID", message.author.id)
-        message.channel.sendEmbed(embed);
-        } else {
-            var embed = new Discord.RichEmbed()
-            .setAuthor(`${userinfotarget.username}#${userinfotarget.discriminator}`)
-            .setDescription("This is the user's info!")
-            .setColor("#000000")
-            .setThumbnail(userinfotarget.avatarURL)
-            .addField("Created At", userinfotarget.createdAt)
-            .addField("ID", userinfotarget.id)
-        message.channel.sendEmbed(embed);
-        }
-    }
-    if(command ===`${prefix}mute`) {
-        if(!message.member.hasPermission("MANAGE_MESSAGES")) return message.channel.sendMessage("You do not have permissions!")
-
-        var toMute = message.guild.member(message.mentions.users.first()) || message.guild.members.get(args[0])
-        if(!toMute) return message.channel.sendMessage("You did not specify a user!");
-
-        var role = message.guild.roles.find(r => r.name === "Muted")
-
-        if(!role) {
-            try {
-                role = await message.guild.createRole({
-                    name: "Muted",
-                    color: "#000000",
-                    permissions: []
-                })
-    
-                message.guild.channels.forEach(async (channel, id) => {
-                    await channel.overwritePermissions(role, {
-                        SEND_MESSAGES: false,
-                        ADD_REACTIONS: false
-                    })
-                })
-            } catch(e) {
-                console.log(e.stack)
-            }
-        }
-
-        if(toMute.roles.has(role.id)) return message.channel.sendMessage(toMute.user.username + " is already muted!")
-
-        await toMute.addRole(role)
-        message.channel.sendMessage(toMute.user.username + " has been muted!")
-        console.log("[Mute] " + message.author.username + " muted " + toMute.user.username)
-        return;
-    }
-    if(command ===`${prefix}unmute`) {
-        if(!message.member.hasPermission("MANAGE_MESSAGES")) return message.channel.sendMessage("You do not have permissions!")
-
-        var toMute = message.guild.member(message.mentions.users.first()) || message.guild.members.get(args[0])
-        if(!toMute) return message.channel.sendMessage("You did not specify a user!");
-
-        var role = message.guild.roles.find(r => r.name === "Muted")
-        if(!role || !toMute.roles.has(role.id)) return message.channel.sendMessage(toMute.user.username + " is not muted!")
-
-        await toMute.removeRole(role)
-        message.channel.sendMessage(toMute.user.username + " has been unmuted!")
-        console.log("[Mute] " + message.author.username + " unmuted " + toMute.user.username)
-        return;
-    }
-})
-
+}})
 bot.login(botSettings.token);
