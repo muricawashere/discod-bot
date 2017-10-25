@@ -1,0 +1,11 @@
+{
+  "name": "discord",
+  "version": "0.0.1",
+  "description": "test discord bot",
+  "main": "bot.js",
+  "author": "Murica",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^11.2.1"
+  }
+}
